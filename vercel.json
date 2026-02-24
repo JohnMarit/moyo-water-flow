@@ -1,0 +1,15 @@
+{
+  "rewrites": [
+    { "source": "/auth", "destination": "/index.html" },
+    { "source": "/auth/:path*", "destination": "/index.html" },
+    { "source": "/dashboard", "destination": "/index.html" },
+    { "source": "/dashboard/:path*", "destination": "/index.html" },
+    { "source": "/supplier", "destination": "/index.html" },
+    { "source": "/supplier/:path*", "destination": "/index.html" },
+    { "source": "/admin", "destination": "/index.html" },
+    {
+      "source": "/((?!assets/)(?!favicon)(?!.*\\.).*)",
+      "destination": "/index.html"
+    }
+  ]
+}
