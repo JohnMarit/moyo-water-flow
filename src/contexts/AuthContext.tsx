@@ -26,10 +26,11 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 
 function getStoredRole(): AuthRole {
   try {
+    if (typeof localStorage === "undefined") return "user";
     const r = localStorage.getItem(ROLE_KEY);
     if (r === "supplier" || r === "user") return r;
   } catch {
-    // ignore
+    // ignore (e.g. private mode, extension interference)
   }
   return "user";
 }
@@ -62,9 +63,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const setRole = useCallback((r: AuthRole) => {
     setRoleState(r);
     try {
-      localStorage.setItem(ROLE_KEY, r);
+      if (typeof localStorage !== "undefined" && (r === "user" || r === "supplier")) {
+        localStorage.setItem(ROLE_KEY, r);
+      }
     } catch {
-      // ignore
+      // ignore (private mode, quota, or extension interference)
     }
   }, []);
 
