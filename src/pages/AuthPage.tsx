@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useSearchParams, useNavigate, Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { Droplets, User, Truck, Mail, Lock, ArrowLeft, Phone } from "lucide-react";
+import { signInWithGoogle } from "@/lib/firebase";
 
 type Role = "user" | "supplier";
 type Mode = "login" | "signup";
@@ -17,6 +18,8 @@ const AuthPage = () => {
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -25,6 +28,24 @@ const AuthPage = () => {
       navigate("/supplier");
     } else {
       navigate("/dashboard");
+    }
+  };
+
+  const handleGoogleSignIn = async () => {
+    try {
+      setGoogleLoading(true);
+      await signInWithGoogle();
+      if (role === "supplier") {
+        navigate("/supplier");
+      } else {
+        navigate("/dashboard");
+      }
+    } catch (error) {
+      console.error("Google sign-in failed", error);
+      // You can replace this with your toast system if desired
+      alert("Google sign-in failed. Please try again.");
+    } finally {
+      setGoogleLoading(false);
     }
   };
 
@@ -153,11 +174,38 @@ const AuthPage = () => {
 
             <button
               type="submit"
-              className="w-full py-3 rounded-xl gradient-bg font-semibold text-primary-foreground hover:opacity-90 transition-opacity glow-shadow text-sm"
+              disabled={loading || googleLoading}
+              className="w-full py-3 rounded-xl gradient-bg font-semibold text-primary-foreground hover:opacity-90 disabled:opacity-60 disabled:cursor-not-allowed transition-opacity glow-shadow text-sm"
             >
-              {mode === "login" ? "Sign In" : "Create Account"}
+              {loading
+                ? "Please wait..."
+                : mode === "login"
+                ? "Sign In"
+                : "Create Account"}
             </button>
           </form>
+
+          <div className="mt-4">
+            <div className="flex items-center gap-2 mb-3">
+              <div className="h-px flex-1 bg-border" />
+              <span className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                Or continue with
+              </span>
+              <div className="h-px flex-1 bg-border" />
+            </div>
+
+            <button
+              type="button"
+              onClick={handleGoogleSignIn}
+              disabled={googleLoading || loading}
+              className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border border-border bg-secondary hover:bg-secondary/80 text-sm font-medium text-foreground disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
+            >
+              <span className="inline-flex h-5 w-5 items-center justify-center rounded-sm bg-white text-xs font-bold text-[#4285F4]">
+                G
+              </span>
+              {googleLoading ? "Connecting to Google..." : "Continue with Google"}
+            </button>
+          </div>
 
           <p className="text-center text-xs text-muted-foreground mt-5">
             {mode === "login" ? "Don't have an account?" : "Already have an account?"}{" "}
