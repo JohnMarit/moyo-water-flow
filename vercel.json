@@ -1,14 +1,8 @@
 {
+  "$schema": "https://openapi.vercel.sh/vercel.json",
   "rewrites": [
-    { "source": "/auth", "destination": "/index.html" },
-    { "source": "/auth/:path*", "destination": "/index.html" },
-    { "source": "/dashboard", "destination": "/index.html" },
-    { "source": "/dashboard/:path*", "destination": "/index.html" },
-    { "source": "/supplier", "destination": "/index.html" },
-    { "source": "/supplier/:path*", "destination": "/index.html" },
-    { "source": "/admin", "destination": "/index.html" },
     {
-      "source": "/((?!assets/)(?!favicon)(?!.*\\.).*)",
+      "source": "/(.*)",
       "destination": "/index.html"
     }
   ]
