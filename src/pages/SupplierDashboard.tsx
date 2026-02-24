@@ -1,25 +1,10 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Droplets, MapPin, Truck, LogOut, Filter, Navigation, CheckCircle2, Clock, AlertTriangle, ChevronRight } from "lucide-react";
+import { Droplets, MapPin, Truck, LogOut, Filter, Navigation, CheckCircle2, AlertTriangle } from "lucide-react";
 import { Link } from "react-router-dom";
-import MapPreview from "@/components/MapPreview";
-
-interface DemandPoint {
-  id: string;
-  area: string;
-  requests: number;
-  urgency: "low" | "medium" | "high";
-  distance: string;
-  status: "pending" | "on_the_way" | "supplied";
-}
-
-const mockDemand: DemandPoint[] = [
-  { id: "1", area: "Gudele Block 7", requests: 12, urgency: "high", distance: "2.3 km", status: "pending" },
-  { id: "2", area: "Munuki West", requests: 8, urgency: "medium", distance: "3.1 km", status: "pending" },
-  { id: "3", area: "Kator Market Area", requests: 15, urgency: "high", distance: "1.8 km", status: "pending" },
-  { id: "4", area: "Jebel Kujur", requests: 5, urgency: "low", distance: "5.4 km", status: "pending" },
-  { id: "5", area: "Hai Referendum", requests: 9, urgency: "medium", distance: "4.0 km", status: "pending" },
-];
+import LiveMap from "@/components/LiveMap";
+import { useDemand } from "@/contexts/DemandContext";
+import { distanceKm } from "@/lib/map-utils";
 
 const urgencyStyles = {
   low: { dot: "bg-moyo-urgency-low", text: "text-moyo-urgency-low", badge: "bg-moyo-urgency-low/15 text-moyo-urgency-low" },
@@ -28,15 +13,22 @@ const urgencyStyles = {
 };
 
 const SupplierDashboard = () => {
-  const [demands, setDemands] = useState(mockDemand);
+  const { demands, updateDemandStatus, setSupplierLocation, setSupplierEnRouteTo, supplierEnRouteTo } = useDemand();
   const [filter, setFilter] = useState<"all" | "low" | "medium" | "high">("all");
 
   const filtered = filter === "all" ? demands : demands.filter((d) => d.urgency === filter);
 
   const handleAction = (id: string, action: "on_the_way" | "supplied") => {
-    setDemands((prev) =>
-      prev.map((d) => (d.id === id ? { ...d, status: action } : d))
-    );
+    const demand = demands.find((d) => d.id === id);
+    if (action === "on_the_way" && demand) {
+      setSupplierEnRouteTo(id);
+      setSupplierLocation({ lat: demand.lat + 0.018, lng: demand.lng });
+    }
+    if (action === "supplied") {
+      setSupplierEnRouteTo(null);
+      setSupplierLocation(null);
+    }
+    updateDemandStatus(id, action);
   };
 
   const pendingCount = demands.filter((d) => d.status === "pending").length;
@@ -45,7 +37,6 @@ const SupplierDashboard = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Top bar */}
       <header className="glass border-b border-border/50 sticky top-0 z-50">
         <div className="container mx-auto px-4 h-14 flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -63,11 +54,9 @@ const SupplierDashboard = () => {
 
       <div className="container mx-auto px-4 py-6">
         <div className="grid lg:grid-cols-[1fr_380px] gap-6">
-          {/* Map area */}
           <div>
-            <MapPreview />
+            <LiveMap demandPoints={demands} height="min-h-[340px]" />
 
-            {/* Quick stats */}
             <div className="grid grid-cols-3 gap-3 mt-4">
               <div className="glass-card p-3 text-center">
                 <p className="text-2xl font-bold font-display text-moyo-warning">{pendingCount}</p>
@@ -84,9 +73,7 @@ const SupplierDashboard = () => {
             </div>
           </div>
 
-          {/* Demand sidebar */}
           <div className="space-y-4">
-            {/* Filter */}
             <div className="glass-card p-3 flex items-center gap-2">
               <Filter className="w-4 h-4 text-muted-foreground" />
               <div className="flex gap-1 flex-1">
@@ -104,25 +91,30 @@ const SupplierDashboard = () => {
               </div>
             </div>
 
-            {/* Route suggestion */}
             <div className="glass-card p-4 glow-border">
               <div className="flex items-center gap-2 mb-2">
                 <Navigation className="w-4 h-4 text-primary" />
                 <h4 className="text-sm font-semibold">Suggested Route</h4>
               </div>
               <p className="text-xs text-muted-foreground mb-3">
-                Kator Market Area → Gudele Block 7 — highest demand cluster (27 requests, 4.1 km)
+                Tap a demand point on the map or list to see exact street location. Use &quot;On My Way&quot; to start navigation.
               </p>
-              <button className="w-full py-2 rounded-lg gradient-bg text-xs font-semibold text-primary-foreground hover:opacity-90 transition-opacity">
-                Start Navigation
-              </button>
+              <a
+                href="https://www.openstreetmap.org/#map=12/4.8517/31.6111"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="block w-full py-2 rounded-lg gradient-bg text-xs font-semibold text-primary-foreground hover:opacity-90 transition-opacity text-center"
+              >
+                Open in OpenStreetMap
+              </a>
             </div>
 
-            {/* Demand list */}
             <div className="space-y-2">
               <h4 className="text-sm font-semibold text-muted-foreground px-1">Demand Points</h4>
               {filtered.map((d, i) => {
                 const style = urgencyStyles[d.urgency];
+                const distKm = d.lat && d.lng ? distanceKm(4.8517, 31.6111, d.lat, d.lng) : null;
+                const distStr = distKm != null ? (distKm < 1 ? `${Math.round(distKm * 1000)} m` : `${distKm.toFixed(1)} km`) : d.distance;
                 return (
                   <motion.div
                     key={d.id}
@@ -138,7 +130,7 @@ const SupplierDashboard = () => {
                           <h5 className="text-sm font-semibold">{d.area}</h5>
                         </div>
                         <p className="text-xs text-muted-foreground mt-0.5">
-                          {d.requests} requests · {d.distance} away
+                          {d.requests} request(s) · {distStr} away
                         </p>
                       </div>
                       <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium capitalize ${style.badge}`}>

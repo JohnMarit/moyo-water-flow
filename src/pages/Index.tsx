@@ -2,7 +2,7 @@ import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
 import { Droplets, ArrowRight } from "lucide-react";
 import Navbar from "@/components/Navbar";
-import MapPreview from "@/components/MapPreview";
+import LiveMap from "@/components/LiveMap";
 import StatsSection from "@/components/StatsSection";
 import FeaturesSection from "@/components/FeaturesSection";
 import Footer from "@/components/Footer";
@@ -72,9 +72,9 @@ const Index = () => {
             </motion.div>
           </div>
 
-          {/* Map preview */}
+          {/* Map preview — real streets, Juba */}
           <div className="max-w-4xl mx-auto">
-            <MapPreview />
+            <LiveMap preview height="min-h-[320px]" />
           </div>
 
           {/* Stats */}

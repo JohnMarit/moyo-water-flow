@@ -20,6 +20,7 @@ const AuthPage = () => {
   const [phone, setPhone] = useState("");
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
+  const [googleError, setGoogleError] = useState<string | null>(null);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -32,6 +33,7 @@ const AuthPage = () => {
   };
 
   const handleGoogleSignIn = async () => {
+    setGoogleError(null);
     try {
       setGoogleLoading(true);
       await signInWithGoogle();
@@ -40,10 +42,18 @@ const AuthPage = () => {
       } else {
         navigate("/dashboard");
       }
-    } catch (error) {
+    } catch (error: unknown) {
       console.error("Google sign-in failed", error);
-      // You can replace this with your toast system if desired
-      alert("Google sign-in failed. Please try again.");
+      const code = error && typeof error === "object" && "code" in error ? (error as { code: string }).code : "";
+      const message = error && typeof error === "object" && "message" in error ? (error as { message: string }).message : String(error);
+      setGoogleError(message || "Google sign-in failed. Please try again.");
+      if (code === "auth/unauthorized-domain") {
+        setGoogleError("This domain is not allowed. Add it in Firebase Console → Authentication → Settings → Authorized domains.");
+      } else if (code === "auth/popup-blocked") {
+        setGoogleError("Sign-in popup was blocked. Allow popups for this site and try again.");
+      } else if (code === "auth/popup-closed-by-user") {
+        setGoogleError(null); // User cancelled, no need to show error
+      }
     } finally {
       setGoogleLoading(false);
     }
@@ -205,6 +215,9 @@ const AuthPage = () => {
               </span>
               {googleLoading ? "Connecting to Google..." : "Continue with Google"}
             </button>
+            {googleError && (
+              <p className="mt-3 text-sm text-destructive text-center">{googleError}</p>
+            )}
           </div>
 
           <p className="text-center text-xs text-muted-foreground mt-5">

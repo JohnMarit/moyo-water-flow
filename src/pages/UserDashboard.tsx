@@ -1,26 +1,131 @@
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
-import { Droplets, MapPin, Clock, CheckCircle2, Truck, LogOut, AlertTriangle, ChevronDown, Phone } from "lucide-react";
+import { Droplets, MapPin, Clock, CheckCircle2, Truck, LogOut, AlertTriangle, Phone } from "lucide-react";
 import { Link } from "react-router-dom";
-import MapPreview from "@/components/MapPreview";
+import LiveMap from "@/components/LiveMap";
+import { useDemand } from "@/contexts/DemandContext";
+import { distanceKm, formatDistance } from "@/lib/map-utils";
+import { JUBA_CENTER } from "@/lib/map-utils";
+import { useToast } from "@/hooks/use-toast";
 
 type RequestStatus = "idle" | "pending" | "on_the_way" | "supplied";
 type Urgency = "low" | "medium" | "high";
 
 const UserDashboard = () => {
+  const { toast } = useToast();
+  const {
+    addDemand,
+    updateDemandStatus,
+    setMyRequestId,
+    setSupplierLocation,
+    setSupplierEnRouteTo,
+    supplierLocation,
+    supplierEnRouteTo,
+    myRequestId,
+    demands,
+  } = useDemand();
+
   const [status, setStatus] = useState<RequestStatus>("idle");
   const [urgency, setUrgency] = useState<Urgency>("medium");
   const [liters, setLiters] = useState("200");
   const [phoneNum, setPhoneNum] = useState("");
   const [showForm, setShowForm] = useState(false);
+  /** User's GPS position (pinned when requesting) */
+  const [userPosition, setUserPosition] = useState<{ lat: number; lng: number } | null>(null);
+  const [gpsLoading, setGpsLoading] = useState(false);
+  const [gpsError, setGpsError] = useState(false);
+
+  const myDemand = myRequestId ? demands.find((d) => d.id === myRequestId) : null;
+  const householdPos = userPosition ?? (myDemand ? { lat: myDemand.lat, lng: myDemand.lng } : null);
+  const isSupplierComingToMe = status === "on_the_way" && myRequestId === supplierEnRouteTo;
+  /** Local state for animating supplier position toward household */
+  const [displaySupplierPos, setDisplaySupplierPos] = useState<{ lat: number; lng: number } | null>(null);
+  const supplierPos = isSupplierComingToMe ? (displaySupplierPos ?? supplierLocation) : null;
+  const distanceToSupplier =
+    householdPos && supplierPos ? distanceKm(householdPos.lat, householdPos.lng, supplierPos.lat, supplierPos.lng) : null;
+
+  // Request GPS when form is shown
+  const requestLocation = useCallback(() => {
+    setGpsError(false);
+    setGpsLoading(true);
+    if (!navigator.geolocation) {
+      setGpsLoading(false);
+      setGpsError(true);
+      toast({ title: "GPS not supported", description: "Using default location for Juba." });
+      setUserPosition(JUBA_CENTER);
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setUserPosition({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+        setGpsLoading(false);
+        toast({ title: "Location pinned", description: "Suppliers will see your exact location." });
+      },
+      () => {
+        setGpsLoading(false);
+        setGpsError(true);
+        toast({ title: "Location denied", description: "Using Juba center. Enable GPS for accurate delivery." });
+        setUserPosition(JUBA_CENTER);
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+    );
+  }, [toast]);
+
+  useEffect(() => {
+    if (showForm && !userPosition && !gpsLoading) requestLocation();
+  }, [showForm, userPosition, gpsLoading, requestLocation]);
 
   const handleRequest = () => {
+    const position = userPosition ?? JUBA_CENTER;
+    const id = addDemand({
+      lat: position.lat,
+      lng: position.lng,
+      area: "Household request",
+      urgency,
+    });
+    setMyRequestId(id);
     setStatus("pending");
     setShowForm(false);
-    // Mock: after 5s set to on_the_way
-    setTimeout(() => setStatus("on_the_way"), 5000);
-    setTimeout(() => setStatus("supplied"), 12000);
+    // Simulate supplier accepting and coming
+    setTimeout(() => {
+      updateDemandStatus(id, "on_the_way");
+      setStatus("on_the_way");
+      // Supplier "starts" ~2 km from household (north)
+      const supplierStart = {
+        lat: position.lat + 0.018,
+        lng: position.lng,
+      };
+      setSupplierLocation(supplierStart);
+      setSupplierEnRouteTo(id);
+    }, 5000);
+    setTimeout(() => {
+      updateDemandStatus(id, "supplied");
+      setStatus("supplied");
+      setSupplierLocation(null);
+      setSupplierEnRouteTo(null);
+      setDisplaySupplierPos(null);
+    }, 12000);
   };
+
+  useEffect(() => {
+    if (isSupplierComingToMe && supplierLocation) setDisplaySupplierPos(supplierLocation);
+  }, [isSupplierComingToMe, supplierLocation]);
+
+  useEffect(() => {
+    if (!isSupplierComingToMe || !householdPos) return;
+    const interval = setInterval(() => {
+      setDisplaySupplierPos((prev) => {
+        if (!prev) return null;
+        const step = 0.12;
+        const lat = prev.lat + (householdPos.lat - prev.lat) * step;
+        const lng = prev.lng + (householdPos.lng - prev.lng) * step;
+        const d = distanceKm(lat, lng, householdPos.lat, householdPos.lng);
+        if (d < 0.03) return householdPos;
+        return { lat, lng };
+      });
+    }, 3000);
+    return () => clearInterval(interval);
+  }, [isSupplierComingToMe, householdPos]);
 
   const statusConfig = {
     idle: { color: "text-muted-foreground", bg: "bg-muted", label: "No active request", icon: MapPin },
@@ -33,7 +138,6 @@ const UserDashboard = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Top bar */}
       <header className="glass border-b border-border/50 sticky top-0 z-50">
         <div className="container mx-auto px-4 h-14 flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -49,7 +153,6 @@ const UserDashboard = () => {
       </header>
 
       <div className="container mx-auto px-4 py-6 max-w-2xl">
-        {/* Status tracker */}
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
@@ -59,18 +162,25 @@ const UserDashboard = () => {
           <current.icon className={`w-5 h-5 ${current.color}`} />
           <div>
             <p className={`text-sm font-semibold ${current.color}`}>{current.label}</p>
-            {status === "on_the_way" && (
+            {status === "on_the_way" && distanceToSupplier != null && (
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Supplier is {formatDistance(distanceToSupplier)} away — see map below
+              </p>
+            )}
+            {status === "on_the_way" && distanceToSupplier == null && (
               <p className="text-xs text-muted-foreground mt-0.5">Estimated arrival: ~15 minutes</p>
             )}
           </div>
         </motion.div>
 
-        {/* Map */}
         <div className="mb-6">
-          <MapPreview />
+          <LiveMap
+            householdPosition={householdPos}
+            supplierPosition={supplierPos}
+            height="min-h-[320px]"
+          />
         </div>
 
-        {/* Request button or form */}
         {status === "idle" && !showForm && (
           <motion.button
             initial={{ opacity: 0 }}
@@ -90,6 +200,15 @@ const UserDashboard = () => {
             className="glass-card p-6 space-y-4"
           >
             <h3 className="font-display font-semibold text-lg">Request Details</h3>
+            {userPosition && (
+              <p className="text-xs text-moyo-success flex items-center gap-1">
+                <MapPin className="w-3 h-3" /> Your location will be pinned for suppliers
+              </p>
+            )}
+            {gpsLoading && <p className="text-xs text-muted-foreground">Getting your location…</p>}
+            {gpsError && (
+              <p className="text-xs text-moyo-warning">Using default location. Enable GPS for accurate delivery.</p>
+            )}
 
             <div>
               <label className="text-xs text-muted-foreground mb-1.5 block">Urgency Level</label>
@@ -162,7 +281,15 @@ const UserDashboard = () => {
 
         {status === "supplied" && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center mt-6">
-            <button onClick={() => setStatus("idle")} className="text-sm text-primary hover:underline">
+            <button
+              onClick={() => {
+                setStatus("idle");
+                setMyRequestId(null);
+                setUserPosition(null);
+                setDisplaySupplierPos(null);
+              }}
+              className="text-sm text-primary hover:underline"
+            >
               Make another request
             </button>
           </motion.div>
