@@ -2,7 +2,9 @@ import { initializeApp } from "firebase/app";
 import {
   getAuth,
   GoogleAuthProvider,
-  signInWithPopup,
+  signInWithRedirect,
+  getRedirectResult,
+  signOut as firebaseSignOut,
   User,
 } from "firebase/auth";
 
@@ -22,8 +24,18 @@ export const auth = getAuth(app);
 
 const provider = new GoogleAuthProvider();
 
-export async function signInWithGoogle(): Promise<User> {
-  const result = await signInWithPopup(auth, provider);
-  return result.user;
+/** Redirects to Google sign-in (avoids COOP/popup issues). Call getRedirectResultOnLoad() when app loads to complete sign-in. */
+export async function signInWithGoogle(): Promise<void> {
+  await signInWithRedirect(auth, provider);
+}
+
+/** Call once on app load to complete sign-in after redirect. Returns the user if they just signed in via redirect. */
+export async function getRedirectResultOnLoad(): Promise<User | null> {
+  const result = await getRedirectResult(auth);
+  return result?.user ?? null;
+}
+
+export async function signOut(): Promise<void> {
+  await firebaseSignOut(auth);
 }
 

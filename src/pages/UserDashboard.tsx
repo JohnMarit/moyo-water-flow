@@ -1,17 +1,19 @@
 import { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
 import { Droplets, MapPin, Clock, CheckCircle2, Truck, LogOut, AlertTriangle, Phone } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import LiveMap from "@/components/LiveMap";
 import { useDemand } from "@/contexts/DemandContext";
-import { distanceKm, formatDistance } from "@/lib/map-utils";
-import { JUBA_CENTER } from "@/lib/map-utils";
+import { useAuth } from "@/contexts/AuthContext";
+import { distanceKm, formatDistance, isValidLatLng, JUBA_CENTER } from "@/lib/map-utils";
 import { useToast } from "@/hooks/use-toast";
 
 type RequestStatus = "idle" | "pending" | "on_the_way" | "supplied";
 type Urgency = "low" | "medium" | "high";
 
 const UserDashboard = () => {
+  const navigate = useNavigate();
+  const { signOut: authSignOut } = useAuth();
   const { toast } = useToast();
   const {
     addDemand,
@@ -36,11 +38,13 @@ const UserDashboard = () => {
   const [gpsError, setGpsError] = useState(false);
 
   const myDemand = myRequestId ? demands.find((d) => d.id === myRequestId) : null;
-  const householdPos = userPosition ?? (myDemand ? { lat: myDemand.lat, lng: myDemand.lng } : null);
+  const householdPosRaw = userPosition ?? (myDemand ? { lat: myDemand.lat, lng: myDemand.lng } : null);
+  const householdPos = isValidLatLng(householdPosRaw) ? householdPosRaw : null;
   const isSupplierComingToMe = status === "on_the_way" && myRequestId === supplierEnRouteTo;
   /** Local state for animating supplier position toward household */
   const [displaySupplierPos, setDisplaySupplierPos] = useState<{ lat: number; lng: number } | null>(null);
-  const supplierPos = isSupplierComingToMe ? (displaySupplierPos ?? supplierLocation) : null;
+  const supplierPosRaw = isSupplierComingToMe ? (displaySupplierPos ?? supplierLocation) : null;
+  const supplierPos = isValidLatLng(supplierPosRaw) ? supplierPosRaw : null;
   const distanceToSupplier =
     householdPos && supplierPos ? distanceKm(householdPos.lat, householdPos.lng, supplierPos.lat, supplierPos.lng) : null;
 
@@ -146,9 +150,16 @@ const UserDashboard = () => {
             </div>
             <span className="font-display font-bold gradient-text">Moyo</span>
           </div>
-          <Link to="/" className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors">
-            <LogOut className="w-3 h-3" /> Logout
-          </Link>
+          <button
+            type="button"
+            onClick={async () => {
+              await authSignOut();
+              navigate("/", { replace: true });
+            }}
+            className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <LogOut className="w-3 h-3" /> Sign out
+          </button>
         </div>
       </header>
 

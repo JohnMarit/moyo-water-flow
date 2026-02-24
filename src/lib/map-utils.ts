@@ -1,6 +1,16 @@
 // Juba, South Sudan center
 export const JUBA_CENTER: [number, number] = [4.8517, 31.6111];
 
+/** Returns true if value is a valid position for Leaflet (finite numbers). */
+export function isValidLatLng(
+  pos: { lat?: unknown; lng?: unknown } | null | undefined
+): pos is { lat: number; lng: number } {
+  if (!pos || typeof pos !== "object") return false;
+  const lat = Number(pos.lat);
+  const lng = Number(pos.lng);
+  return Number.isFinite(lat) && Number.isFinite(lng);
+}
+
 /** Distance in km between two points (Haversine) */
 export function distanceKm(
   lat1: number,

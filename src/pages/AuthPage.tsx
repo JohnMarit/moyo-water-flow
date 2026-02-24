@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useSearchParams, useNavigate, Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { Droplets, User, Truck, Mail, Lock, ArrowLeft, Phone } from "lucide-react";
 import { signInWithGoogle } from "@/lib/firebase";
+import { useAuth } from "@/contexts/AuthContext";
 
 type Role = "user" | "supplier";
 type Mode = "login" | "signup";
@@ -10,6 +11,7 @@ type Mode = "login" | "signup";
 const AuthPage = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  const { user, authLoading, role: authRole, setRole: persistRole, setMockAuthenticated } = useAuth();
   const initialRole = searchParams.get("role") === "supplier" ? "supplier" : "user";
 
   const [role, setRole] = useState<Role>(initialRole);
@@ -22,9 +24,19 @@ const AuthPage = () => {
   const [googleLoading, setGoogleLoading] = useState(false);
   const [googleError, setGoogleError] = useState<string | null>(null);
 
+  // Already signed in: redirect to dashboard (persists across refresh)
+  useEffect(() => {
+    if (authLoading) return;
+    if (user) {
+      const target = authRole === "supplier" ? "/supplier" : "/dashboard";
+      navigate(target, { replace: true });
+    }
+  }, [user, authLoading, navigate, authRole]);
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // Mock auth — navigate to appropriate dashboard
+    persistRole(role);
+    setMockAuthenticated(true);
     if (role === "supplier") {
       navigate("/supplier");
     } else {
@@ -36,12 +48,8 @@ const AuthPage = () => {
     setGoogleError(null);
     try {
       setGoogleLoading(true);
-      await signInWithGoogle();
-      if (role === "supplier") {
-        navigate("/supplier");
-      } else {
-        navigate("/dashboard");
-      }
+      persistRole(role); // save before redirect so we know which dashboard after return
+      await signInWithGoogle(); // redirects to Google; after return, getRedirectResultOnLoad runs in AuthContext
     } catch (error: unknown) {
       console.error("Google sign-in failed", error);
       const code = error && typeof error === "object" && "code" in error ? (error as { code: string }).code : "";
@@ -49,15 +57,22 @@ const AuthPage = () => {
       setGoogleError(message || "Google sign-in failed. Please try again.");
       if (code === "auth/unauthorized-domain") {
         setGoogleError("This domain is not allowed. Add it in Firebase Console → Authentication → Settings → Authorized domains.");
-      } else if (code === "auth/popup-blocked") {
-        setGoogleError("Sign-in popup was blocked. Allow popups for this site and try again.");
-      } else if (code === "auth/popup-closed-by-user") {
-        setGoogleError(null); // User cancelled, no need to show error
       }
     } finally {
       setGoogleLoading(false);
     }
   };
+
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-10 h-10 rounded-xl gradient-bg animate-pulse" />
+          <p className="text-sm text-muted-foreground">Loading…</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4 relative">

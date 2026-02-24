@@ -2,7 +2,7 @@ import { useEffect } from "react";
 import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
-import { JUBA_CENTER } from "@/lib/map-utils";
+import { JUBA_CENTER, isValidLatLng } from "@/lib/map-utils";
 import type { DemandPoint } from "@/contexts/DemandContext";
 
 // Fix default marker icons in Leaflet with Vite
@@ -45,11 +45,13 @@ function FitBounds({ demandPoints, householdPosition, supplierPosition }: {
   const map = useMap();
   useEffect(() => {
     const points: [number, number][] = [];
-    demandPoints?.forEach((d) => points.push([d.lat, d.lng]));
-    if (householdPosition) points.push([householdPosition.lat, householdPosition.lng]);
-    if (supplierPosition) points.push([supplierPosition.lat, supplierPosition.lng]);
+    demandPoints?.forEach((d) => {
+      if (isValidLatLng(d)) points.push([d.lat, d.lng]);
+    });
+    if (isValidLatLng(householdPosition)) points.push([householdPosition.lat, householdPosition.lng]);
+    if (isValidLatLng(supplierPosition)) points.push([supplierPosition.lat, supplierPosition.lng]);
     if (points.length > 1) {
-      map.fitBounds(points as [number, number][], { padding: [40, 40], maxZoom: 14 });
+      map.fitBounds(points, { padding: [40, 40], maxZoom: 14 });
     }
   }, [map, demandPoints, householdPosition, supplierPosition]);
   return null;
@@ -75,7 +77,7 @@ export default function LiveMap({
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
-        {!preview && householdPosition && (
+        {!preview && isValidLatLng(householdPosition) && (
           <Marker
             position={[householdPosition.lat, householdPosition.lng]}
             icon={householdIcon}
@@ -83,7 +85,7 @@ export default function LiveMap({
             <Popup>Your location (water request)</Popup>
           </Marker>
         )}
-        {!preview && supplierPosition && (
+        {!preview && isValidLatLng(supplierPosition) && (
           <Marker
             position={[supplierPosition.lat, supplierPosition.lng]}
             icon={supplierIcon}
@@ -92,7 +94,7 @@ export default function LiveMap({
           </Marker>
         )}
         {!preview && demandPoints.length > 0 &&
-          demandPoints.map((d) => (
+          demandPoints.filter(isValidLatLng).map((d) => (
             <Marker
               key={d.id}
               position={[d.lat, d.lng]}
@@ -105,7 +107,7 @@ export default function LiveMap({
               </Popup>
             </Marker>
           ))}
-        {!preview && (demandPoints.length > 0 || householdPosition || supplierPosition) && (
+        {!preview && (demandPoints.some(isValidLatLng) || isValidLatLng(householdPosition) || isValidLatLng(supplierPosition)) && (
           <FitBounds
             demandPoints={demandPoints}
             householdPosition={householdPosition}

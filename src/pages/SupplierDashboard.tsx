@@ -1,10 +1,12 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Droplets, MapPin, Truck, LogOut, Filter, Navigation, CheckCircle2, AlertTriangle } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Droplets, Truck, LogOut, Filter, Navigation, CheckCircle2, Inbox } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import LiveMap from "@/components/LiveMap";
 import { useDemand } from "@/contexts/DemandContext";
-import { distanceKm } from "@/lib/map-utils";
+import { useAuth } from "@/contexts/AuthContext";
+import { distanceKm, formatDistance } from "@/lib/map-utils";
+import { JUBA_CENTER } from "@/lib/map-utils";
 
 const urgencyStyles = {
   low: { dot: "bg-moyo-urgency-low", text: "text-moyo-urgency-low", badge: "bg-moyo-urgency-low/15 text-moyo-urgency-low" },
@@ -13,7 +15,9 @@ const urgencyStyles = {
 };
 
 const SupplierDashboard = () => {
-  const { demands, updateDemandStatus, setSupplierLocation, setSupplierEnRouteTo, supplierEnRouteTo } = useDemand();
+  const navigate = useNavigate();
+  const { signOut: authSignOut } = useAuth();
+  const { demands, updateDemandStatus, setSupplierLocation, setSupplierEnRouteTo } = useDemand();
   const [filter, setFilter] = useState<"all" | "low" | "medium" | "high">("all");
 
   const filtered = filter === "all" ? demands : demands.filter((d) => d.urgency === filter);
@@ -31,9 +35,11 @@ const SupplierDashboard = () => {
     updateDemandStatus(id, action);
   };
 
-  const pendingCount = demands.filter((d) => d.status === "pending").length;
+  const pendingDemands = demands.filter((d) => d.status === "pending");
+  const pendingCount = pendingDemands.length;
   const onWayCount = demands.filter((d) => d.status === "on_the_way").length;
   const suppliedCount = demands.filter((d) => d.status === "supplied").length;
+  const nextPending = pendingDemands[0];
 
   return (
     <div className="min-h-screen bg-background">
@@ -46,9 +52,16 @@ const SupplierDashboard = () => {
             <span className="font-display font-bold gradient-text">Moyo</span>
             <span className="text-xs text-muted-foreground ml-2 hidden sm:inline">Supplier Panel</span>
           </div>
-          <Link to="/" className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors">
-            <LogOut className="w-3 h-3" /> Logout
-          </Link>
+          <button
+            type="button"
+            onClick={async () => {
+              await authSignOut();
+              navigate("/", { replace: true });
+            }}
+            className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <LogOut className="w-3 h-3" /> Sign out
+          </button>
         </div>
       </header>
 
@@ -96,25 +109,42 @@ const SupplierDashboard = () => {
                 <Navigation className="w-4 h-4 text-primary" />
                 <h4 className="text-sm font-semibold">Suggested Route</h4>
               </div>
-              <p className="text-xs text-muted-foreground mb-3">
-                Tap a demand point on the map or list to see exact street location. Use &quot;On My Way&quot; to start navigation.
-              </p>
-              <a
-                href="https://www.openstreetmap.org/#map=12/4.8517/31.6111"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="block w-full py-2 rounded-lg gradient-bg text-xs font-semibold text-primary-foreground hover:opacity-90 transition-opacity text-center"
-              >
-                Open in OpenStreetMap
-              </a>
+              {nextPending ? (
+                <>
+                  <p className="text-xs text-muted-foreground mb-2">
+                    Nearest pending: <strong>{nextPending.area}</strong> — {formatDistance(distanceKm(JUBA_CENTER[0], JUBA_CENTER[1], nextPending.lat, nextPending.lng))} away
+                  </p>
+                  <a
+                    href={`https://www.openstreetmap.org/?mlat=${nextPending.lat}&mlon=${nextPending.lng}#map=17/${nextPending.lat}/${nextPending.lng}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="block w-full py-2 rounded-lg gradient-bg text-xs font-semibold text-primary-foreground hover:opacity-90 transition-opacity text-center"
+                  >
+                    Open in OpenStreetMap
+                  </a>
+                </>
+              ) : (
+                <p className="text-xs text-muted-foreground mb-2">
+                  No pending requests. New requests from households will appear here and on the map.
+                </p>
+              )}
             </div>
 
             <div className="space-y-2">
               <h4 className="text-sm font-semibold text-muted-foreground px-1">Demand Points</h4>
-              {filtered.map((d, i) => {
+              {filtered.length === 0 ? (
+                <div className="glass-card p-8 text-center">
+                  <Inbox className="w-10 h-10 text-muted-foreground mx-auto mb-3 opacity-60" />
+                  <p className="text-sm text-muted-foreground">No demand points yet</p>
+                  <p className="text-xs text-muted-foreground mt-1">When households request water, their location will appear here and on the map.</p>
+                </div>
+              ) : (
+              filtered.map((d, i) => {
                 const style = urgencyStyles[d.urgency];
-                const distKm = d.lat && d.lng ? distanceKm(4.8517, 31.6111, d.lat, d.lng) : null;
-                const distStr = distKm != null ? (distKm < 1 ? `${Math.round(distKm * 1000)} m` : `${distKm.toFixed(1)} km`) : d.distance;
+                const distKm = typeof d.lat === "number" && typeof d.lng === "number"
+                  ? distanceKm(JUBA_CENTER[0], JUBA_CENTER[1], d.lat, d.lng)
+                  : null;
+                const distStr = distKm != null ? formatDistance(distKm) : d.distance;
                 return (
                   <motion.div
                     key={d.id}
@@ -176,7 +206,8 @@ const SupplierDashboard = () => {
                     )}
                   </motion.div>
                 );
-              })}
+              })
+              )}
             </div>
           </div>
         </div>
