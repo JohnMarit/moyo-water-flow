@@ -11,7 +11,7 @@ import { useAuth } from "@/contexts/AuthContext";
 
 const Index = () => {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, authLoading } = useAuth();
   const { liveSuppliersForMap, getApplicationByUserId } = useSuppliers();
   const liveSuppliers = liveSuppliersForMap.map((s) => ({
     id: s.supplierId,
@@ -22,22 +22,20 @@ const Index = () => {
   }));
 
   const handleRequestWater = () => {
-    // If user already signed up with Google, go straight to request dashboard
+    if (authLoading) return;
     if (user) {
       navigate("/dashboard");
     } else {
-      // Not signed in yet: show Google sign-in (household) first
       navigate("/auth");
     }
   };
 
   const handleBecomeSupplier = () => {
+    if (authLoading) return;
     if (!user) {
-      // Not signed in: go through Google sign-in as supplier
       navigate("/auth?role=supplier");
       return;
     }
-    // Already signed in: check supplier application/approval
     const userId = user.uid ?? user.email ?? "";
     const application = getApplicationByUserId(userId);
     if (application?.status === "approved") {

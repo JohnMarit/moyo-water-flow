@@ -8,11 +8,12 @@ import { useSuppliers } from "@/contexts/SuppliersContext";
 const Navbar = () => {
   const [mobileOpen, setMobileOpen] = useState(false);
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, authLoading } = useAuth();
   const { getApplicationByUserId } = useSuppliers();
 
   const handleRequestWater = () => {
     setMobileOpen(false);
+    if (authLoading) return;
     if (user) {
       navigate("/dashboard");
     } else {
@@ -22,6 +23,7 @@ const Navbar = () => {
 
   const handleBecomeSupplier = () => {
     setMobileOpen(false);
+    if (authLoading) return;
     if (!user) {
       navigate("/auth?role=supplier");
       return;
