@@ -22,7 +22,9 @@ export default function ProtectedRoute({ children }: ProtectedRouteProps) {
   }
 
   if (!isAuthenticated) {
-    return <Navigate to="/auth" state={{ from: location }} replace />;
+    const isSupplierRoute = location.pathname.startsWith("/supplier");
+    const authPath = isSupplierRoute ? "/auth?role=supplier" : "/auth";
+    return <Navigate to={authPath} state={{ from: location }} replace />;
   }
 
   return <>{children}</>;
