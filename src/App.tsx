@@ -7,6 +7,7 @@ import { DemandProvider } from "@/contexts/DemandContext";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { SuppliersProvider } from "@/contexts/SuppliersContext";
 import ProtectedRoute from "./components/ProtectedRoute";
+import AdminRoute from "./components/AdminRoute";
 import Index from "./pages/Index";
 import AuthPage from "./pages/AuthPage";
 import UserDashboard from "./pages/UserDashboard";
@@ -25,7 +26,7 @@ function AppRoutes() {
       <Route path="/dashboard" element={<ProtectedRoute><UserDashboard /></ProtectedRoute>} />
       <Route path="/supplier" element={<ProtectedRoute><SupplierDashboard /></ProtectedRoute>} />
       <Route path="/supplier/apply" element={<ProtectedRoute><SupplierApply /></ProtectedRoute>} />
-      <Route path="/admin" element={<AdminPanel />} />
+      <Route path="/admin" element={<AdminRoute><AdminPanel /></AdminRoute>} />
       <Route path="*" element={<NotFound />} />
     </Routes>
   );

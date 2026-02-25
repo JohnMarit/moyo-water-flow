@@ -38,6 +38,29 @@ const Index = () => {
               height="h-full min-h-[280px] sm:min-h-[320px] md:min-h-[380px] lg:min-h-[420px]"
             />
           </motion.div>
+
+          {/* Primary actions directly after the map */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.2 }}
+            className="mt-4 flex flex-col sm:flex-row gap-3 justify-center"
+          >
+            <Link
+              to="/auth"
+              className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl gradient-bg font-semibold text-primary-foreground hover:opacity-90 transition-opacity glow-shadow"
+            >
+              <Droplets className="w-4 h-4" />
+              Request Water
+            </Link>
+            <Link
+              to="/auth?role=supplier"
+              className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl glass-button font-medium text-foreground"
+            >
+              Become a Supplier
+              <ArrowRight className="w-4 h-4" />
+            </Link>
+          </motion.div>
         </div>
       </section>
 
@@ -75,28 +98,6 @@ const Index = () => {
             >
               See tankers moving on the map above. Request water, track delivery, save lives.
             </motion.p>
-
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.3 }}
-              className="flex flex-col sm:flex-row gap-3 justify-center"
-            >
-              <Link
-                to="/auth"
-                className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl gradient-bg font-semibold text-primary-foreground hover:opacity-90 transition-opacity glow-shadow"
-              >
-                <Droplets className="w-4 h-4" />
-                Request Water
-              </Link>
-              <Link
-                to="/auth?role=supplier"
-                className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl glass-button font-medium text-foreground"
-              >
-                Become a Supplier
-                <ArrowRight className="w-4 h-4" />
-              </Link>
-            </motion.div>
           </div>
 
           {/* Stats */}
