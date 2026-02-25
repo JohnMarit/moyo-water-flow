@@ -43,20 +43,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     let cancelled = false;
-    getRedirectResultOnLoad().then(() => {
-      if (!cancelled) {
-        // Auth state will update via onAuthStateChanged after redirect result is processed
-      }
-    });
-    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
-      if (!cancelled) {
-        setUser(firebaseUser);
-        setAuthLoading(false);
-      }
-    });
+    let unsubscribe: (() => void) | null = null;
+    (async () => {
+      // Process Google redirect first so we don't show login before redirect is handled.
+      // Otherwise onAuthStateChanged can fire with null before getRedirectResult runs.
+      await getRedirectResultOnLoad();
+      if (cancelled) return;
+      unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+        if (!cancelled) {
+          setUser(firebaseUser);
+          setAuthLoading(false);
+        }
+      });
+      // If we already have a user (e.g. from redirect), onAuthStateChanged fires sync;
+      // otherwise we wait for it. Ensure we don't leave authLoading true forever.
+      if (auth.currentUser && !cancelled) setAuthLoading(false);
+    })();
     return () => {
       cancelled = true;
-      unsubscribe();
+      unsubscribe?.();
     };
   }, []);
 
