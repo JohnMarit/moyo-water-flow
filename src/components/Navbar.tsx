@@ -8,24 +8,18 @@ import { useSuppliers } from "@/contexts/SuppliersContext";
 const Navbar = () => {
   const [mobileOpen, setMobileOpen] = useState(false);
   const navigate = useNavigate();
-  const { user, authLoading } = useAuth();
+  const { user } = useAuth();
   const { getApplicationByUserId } = useSuppliers();
 
   const handleRequestWater = () => {
     setMobileOpen(false);
-    if (authLoading) return;
-    if (user) {
-      navigate("/dashboard");
-    } else {
-      navigate("/auth");
-    }
+    navigate("/dashboard");
   };
 
   const handleBecomeSupplier = () => {
     setMobileOpen(false);
-    if (authLoading) return;
     if (!user) {
-      navigate("/auth?role=supplier");
+      navigate("/supplier");
       return;
     }
     const userId = user.uid ?? user.email ?? "";
