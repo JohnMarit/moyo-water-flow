@@ -24,6 +24,12 @@ const demandIcon = (urgency: DemandPoint["urgency"]) =>
     "!"
   );
 
+// Keep map focused on Juba, South Sudan and prevent panning/zooming far away
+const JUBA_BOUNDS = L.latLngBounds(
+  [JUBA_CENTER[0] - 0.1, JUBA_CENTER[1] - 0.15],
+  [JUBA_CENTER[0] + 0.1, JUBA_CENTER[1] + 0.15]
+);
+
 export interface LiveSupplierMarker {
   id: string;
   lat: number;
@@ -95,6 +101,10 @@ export default function LiveMap({
       <MapContainer
         center={JUBA_CENTER}
         zoom={12}
+        minZoom={12}
+        maxZoom={17}
+        maxBounds={JUBA_BOUNDS}
+        maxBoundsViscosity={1.0}
         className="w-full h-full min-h-[280px] z-0"
         scrollWheelZoom={true}
       >
