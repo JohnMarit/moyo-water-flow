@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { Droplets, ArrowRight } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import LiveMap from "@/components/LiveMap";
@@ -7,9 +7,12 @@ import StatsSection from "@/components/StatsSection";
 import FeaturesSection from "@/components/FeaturesSection";
 import Footer from "@/components/Footer";
 import { useSuppliers } from "@/contexts/SuppliersContext";
+import { useAuth } from "@/contexts/AuthContext";
 
 const Index = () => {
-  const { liveSuppliersForMap } = useSuppliers();
+  const navigate = useNavigate();
+  const { user } = useAuth();
+  const { liveSuppliersForMap, getApplicationByUserId } = useSuppliers();
   const liveSuppliers = liveSuppliersForMap.map((s) => ({
     id: s.supplierId,
     lat: s.lat,
@@ -17,6 +20,32 @@ const Index = () => {
     name: s.name,
     vehiclePlate: s.vehiclePlate,
   }));
+
+  const handleRequestWater = () => {
+    // If user already signed up with Google, go straight to request dashboard
+    if (user) {
+      navigate("/dashboard");
+    } else {
+      // Not signed in yet: show Google sign-in (household) first
+      navigate("/auth");
+    }
+  };
+
+  const handleBecomeSupplier = () => {
+    if (!user) {
+      // Not signed in: go through Google sign-in as supplier
+      navigate("/auth?role=supplier");
+      return;
+    }
+    // Already signed in: check supplier application/approval
+    const userId = user.uid ?? user.email ?? "";
+    const application = getApplicationByUserId(userId);
+    if (application?.status === "approved") {
+      navigate("/supplier");
+    } else {
+      navigate("/supplier/apply");
+    }
+  };
 
   return (
     <div className="min-h-screen bg-background overflow-x-hidden">
@@ -46,20 +75,22 @@ const Index = () => {
             transition={{ duration: 0.6, delay: 0.2 }}
             className="mt-4 flex flex-col sm:flex-row gap-3 justify-center"
           >
-            <Link
-              to="/auth"
+            <button
+              type="button"
+              onClick={handleRequestWater}
               className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl gradient-bg font-semibold text-primary-foreground hover:opacity-90 transition-opacity glow-shadow"
             >
               <Droplets className="w-4 h-4" />
               Request Water
-            </Link>
-            <Link
-              to="/auth?role=supplier"
+            </button>
+            <button
+              type="button"
+              onClick={handleBecomeSupplier}
               className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl glass-button font-medium text-foreground"
             >
               Become a Supplier
               <ArrowRight className="w-4 h-4" />
-            </Link>
+            </button>
           </motion.div>
         </div>
       </section>
