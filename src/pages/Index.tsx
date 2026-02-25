@@ -62,12 +62,16 @@ const Index = () => {
   }));
 
   const handleRequestWater = () => {
+    if (!user) {
+      navigate("/auth");
+      return;
+    }
     navigate("/dashboard");
   };
 
   const handleBecomeSupplier = () => {
     if (!user) {
-      navigate("/supplier");
+      navigate("/auth?role=supplier");
       return;
     }
     const userId = user.uid ?? user.email ?? "";
@@ -77,6 +81,10 @@ const Index = () => {
     } else {
       navigate("/supplier/apply");
     }
+  };
+
+  const handleSignIn = () => {
+    navigate("/auth");
   };
 
   return (
@@ -107,22 +115,35 @@ const Index = () => {
             transition={{ duration: 0.6, delay: 0.2 }}
             className="mt-4 flex flex-col sm:flex-row gap-3 justify-center"
           >
-            <button
-              type="button"
-              onClick={handleRequestWater}
-              className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl gradient-bg font-semibold text-primary-foreground hover:opacity-90 transition-opacity glow-shadow"
-            >
-              <Droplets className="w-4 h-4" />
-              Request Water
-            </button>
-            <button
-              type="button"
-              onClick={handleBecomeSupplier}
-              className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl glass-button font-medium text-foreground"
-            >
-              Become a Supplier
-              <ArrowRight className="w-4 h-4" />
-            </button>
+            {user ? (
+              <>
+                <button
+                  type="button"
+                  onClick={handleRequestWater}
+                  className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl gradient-bg font-semibold text-primary-foreground hover:opacity-90 transition-opacity glow-shadow"
+                >
+                  <Droplets className="w-4 h-4" />
+                  Request Water
+                </button>
+                <button
+                  type="button"
+                  onClick={handleBecomeSupplier}
+                  className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl glass-button font-medium text-foreground"
+                >
+                  Become a Supplier
+                  <ArrowRight className="w-4 h-4" />
+                </button>
+              </>
+            ) : (
+              <button
+                type="button"
+                onClick={handleSignIn}
+                className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl gradient-bg font-semibold text-primary-foreground hover:opacity-90 transition-opacity glow-shadow"
+              >
+                <Droplets className="w-4 h-4" />
+                Sign In to Get Started
+              </button>
+            )}
           </motion.div>
         </div>
       </section>
@@ -159,7 +180,10 @@ const Index = () => {
               transition={{ duration: 0.6, delay: 0.2 }}
               className="text-lg text-muted-foreground max-w-xl mx-auto mb-8"
             >
-              See tankers moving on the map above. Request water, track delivery, save lives.
+              {user 
+                ? "See tankers moving on the map above. Request water, track delivery, save lives."
+                : "See tankers moving on the map above. Sign in to request water, track delivery, save lives."
+              }
             </motion.p>
           </div>
 

@@ -29,10 +29,15 @@ export async function signInWithGoogle(): Promise<void> {
   await signInWithRedirect(auth, provider);
 }
 
-/** Call once on app load to complete sign-in after redirect. Returns the user if they just signed in via redirect. */
-export async function getRedirectResultOnLoad(): Promise<User | null> {
-  const result = await getRedirectResult(auth);
-  return result?.user ?? null;
+/** Call once on app load to complete sign-in after redirect. Returns the result object if they just signed in via redirect. */
+export async function getRedirectResultOnLoad() {
+  try {
+    const result = await getRedirectResult(auth);
+    return result;
+  } catch (error) {
+    console.error('Error getting redirect result:', error);
+    return null;
+  }
 }
 
 export async function signOut(): Promise<void> {

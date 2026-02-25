@@ -45,19 +45,40 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     let cancelled = false;
     let unsubscribe: (() => void) | null = null;
     (async () => {
-      // Process Google redirect first so we don't show login before redirect is handled.
-      // Otherwise onAuthStateChanged can fire with null before getRedirectResult runs.
-      await getRedirectResultOnLoad();
-      if (cancelled) return;
-      unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
-        if (!cancelled) {
-          setUser(firebaseUser);
+      try {
+        // Process Google redirect first so we don't show login before redirect is handled.
+        // Otherwise onAuthStateChanged can fire with null before getRedirectResult runs.
+        const redirectResult = await getRedirectResultOnLoad();
+        
+        if (cancelled) return;
+        
+        // If we got a redirect result, set the user immediately
+        if (redirectResult?.user) {
+          setUser(redirectResult.user);
+        }
+        
+        // Now set up the auth state observer
+        unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+          if (!cancelled) {
+            setUser(firebaseUser);
+            // Only set loading to false after we've processed the redirect result
+            // and the auth state has been updated
+            setAuthLoading(false);
+          }
+        });
+        
+        // If we already have a user (e.g. from redirect), onAuthStateChanged fires sync;
+        // otherwise we wait for it. Ensure we don't leave authLoading true forever.
+        if (auth.currentUser && !cancelled) {
+          setUser(auth.currentUser);
           setAuthLoading(false);
         }
-      });
-      // If we already have a user (e.g. from redirect), onAuthStateChanged fires sync;
-      // otherwise we wait for it. Ensure we don't leave authLoading true forever.
-      if (auth.currentUser && !cancelled) setAuthLoading(false);
+      } catch (error) {
+        console.error('Error during auth initialization:', error);
+        if (!cancelled) {
+          setAuthLoading(false);
+        }
+      }
     })();
     return () => {
       cancelled = true;

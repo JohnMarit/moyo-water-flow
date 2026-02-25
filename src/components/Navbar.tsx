@@ -13,13 +13,19 @@ const Navbar = () => {
 
   const handleRequestWater = () => {
     setMobileOpen(false);
+    // Only allow requesting water when authenticated (Firebase/Google user present)
+    if (!user) {
+      navigate("/auth");
+      return;
+    }
     navigate("/dashboard");
   };
 
   const handleBecomeSupplier = () => {
     setMobileOpen(false);
     if (!user) {
-      navigate("/supplier");
+      // Unauthenticated users must sign in (via Google) and choose supplier role
+      navigate("/auth?role=supplier");
       return;
     }
     const userId = user.uid ?? user.email ?? "";
@@ -44,13 +50,25 @@ const Navbar = () => {
         {/* Desktop */}
         <div className="hidden md:flex items-center gap-6">
           <Link to="/" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Home</Link>
-          <button type="button" onClick={handleRequestWater} className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-            Request Water
-          </button>
-          <button type="button" onClick={handleBecomeSupplier} className="text-sm px-4 py-2 rounded-lg gradient-bg font-medium text-primary-foreground hover:opacity-90 transition-opacity inline-flex items-center gap-1">
-            Become a Supplier
-            <ArrowRight className="w-4 h-4" />
-          </button>
+          {user && (
+            <>
+              <button
+                type="button"
+                onClick={handleRequestWater}
+                className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+              >
+                Request Water
+              </button>
+              <button
+                type="button"
+                onClick={handleBecomeSupplier}
+                className="text-sm px-4 py-2 rounded-lg gradient-bg font-medium text-primary-foreground hover:opacity-90 transition-opacity inline-flex items-center gap-1"
+              >
+                Become a Supplier
+                <ArrowRight className="w-4 h-4" />
+              </button>
+            </>
+          )}
         </div>
 
         {/* Mobile toggle */}
@@ -69,12 +87,24 @@ const Navbar = () => {
           >
             <div className="container mx-auto px-4 py-4 flex flex-col gap-3">
               <Link to="/" onClick={() => setMobileOpen(false)} className="text-sm text-muted-foreground hover:text-foreground transition-colors py-2">Home</Link>
-              <button type="button" onClick={handleRequestWater} className="text-sm text-muted-foreground hover:text-foreground transition-colors py-2 text-left">
-                Request Water
-              </button>
-              <button type="button" onClick={handleBecomeSupplier} className="text-sm px-4 py-2 rounded-lg gradient-bg font-medium text-primary-foreground text-center">
-                Become a Supplier
-              </button>
+              {user && (
+                <>
+                  <button
+                    type="button"
+                    onClick={handleRequestWater}
+                    className="text-sm text-muted-foreground hover:text-foreground transition-colors py-2 text-left"
+                  >
+                    Request Water
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleBecomeSupplier}
+                    className="text-sm px-4 py-2 rounded-lg gradient-bg font-medium text-primary-foreground text-center"
+                  >
+                    Become a Supplier
+                  </button>
+                </>
+              )}
             </div>
           </motion.div>
         )}
