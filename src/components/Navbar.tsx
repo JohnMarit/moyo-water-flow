@@ -1,10 +1,39 @@
-import { Link } from "react-router-dom";
-import { Droplets, Menu, X } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
+import { Droplets, Menu, X, ArrowRight } from "lucide-react";
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useAuth } from "@/contexts/AuthContext";
+import { useSuppliers } from "@/contexts/SuppliersContext";
 
 const Navbar = () => {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const navigate = useNavigate();
+  const { user } = useAuth();
+  const { getApplicationByUserId } = useSuppliers();
+
+  const handleRequestWater = () => {
+    setMobileOpen(false);
+    if (user) {
+      navigate("/dashboard");
+    } else {
+      navigate("/auth");
+    }
+  };
+
+  const handleBecomeSupplier = () => {
+    setMobileOpen(false);
+    if (!user) {
+      navigate("/auth?role=supplier");
+      return;
+    }
+    const userId = user.uid ?? user.email ?? "";
+    const application = getApplicationByUserId(userId);
+    if (application?.status === "approved") {
+      navigate("/supplier");
+    } else {
+      navigate("/supplier/apply");
+    }
+  };
 
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 glass border-b border-border/50">
@@ -19,10 +48,13 @@ const Navbar = () => {
         {/* Desktop */}
         <div className="hidden md:flex items-center gap-6">
           <Link to="/" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Home</Link>
-          <Link to="/auth" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Login</Link>
-          <Link to="/auth?role=supplier" className="text-sm px-4 py-2 rounded-lg gradient-bg font-medium text-primary-foreground hover:opacity-90 transition-opacity">
+          <button type="button" onClick={handleRequestWater} className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+            Request Water
+          </button>
+          <button type="button" onClick={handleBecomeSupplier} className="text-sm px-4 py-2 rounded-lg gradient-bg font-medium text-primary-foreground hover:opacity-90 transition-opacity inline-flex items-center gap-1">
             Become a Supplier
-          </Link>
+            <ArrowRight className="w-4 h-4" />
+          </button>
         </div>
 
         {/* Mobile toggle */}
@@ -41,10 +73,12 @@ const Navbar = () => {
           >
             <div className="container mx-auto px-4 py-4 flex flex-col gap-3">
               <Link to="/" onClick={() => setMobileOpen(false)} className="text-sm text-muted-foreground hover:text-foreground transition-colors py-2">Home</Link>
-              <Link to="/auth" onClick={() => setMobileOpen(false)} className="text-sm text-muted-foreground hover:text-foreground transition-colors py-2">Login</Link>
-              <Link to="/auth?role=supplier" onClick={() => setMobileOpen(false)} className="text-sm px-4 py-2 rounded-lg gradient-bg font-medium text-primary-foreground text-center">
+              <button type="button" onClick={handleRequestWater} className="text-sm text-muted-foreground hover:text-foreground transition-colors py-2 text-left">
+                Request Water
+              </button>
+              <button type="button" onClick={handleBecomeSupplier} className="text-sm px-4 py-2 rounded-lg gradient-bg font-medium text-primary-foreground text-center">
                 Become a Supplier
-              </Link>
+              </button>
             </div>
           </motion.div>
         )}

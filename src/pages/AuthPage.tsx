@@ -1,11 +1,12 @@
 import { useState, useEffect } from "react";
 import { useSearchParams, useNavigate, Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Droplets, User, Truck, ArrowLeft } from "lucide-react";
+import { Droplets, ArrowLeft } from "lucide-react";
 import { signInWithGoogle } from "@/lib/firebase";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSuppliers } from "@/contexts/SuppliersContext";
 
+/** Role is strictly from URL: /auth = household (request water), /auth?role=supplier = supplier */
 type Role = "user" | "supplier";
 
 const AuthPage = () => {
@@ -13,9 +14,8 @@ const AuthPage = () => {
   const navigate = useNavigate();
   const { user, authLoading, role: authRole, setRole: persistRole } = useAuth();
   const { getApplicationByUserId } = useSuppliers();
-  const initialRole = searchParams.get("role") === "supplier" ? "supplier" : "user";
+  const role: Role = searchParams.get("role") === "supplier" ? "supplier" : "user";
 
-  const [role, setRole] = useState<Role>(initialRole);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [googleError, setGoogleError] = useState<string | null>(null);
 
@@ -85,7 +85,7 @@ const AuthPage = () => {
     );
   }
 
-  // Not signed in: show sign-in screen (role selector + Google only)
+  // Not signed in: show sign-in screen — role is fixed from URL (strict flow)
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4 relative">
       {/* Background glow */}
@@ -110,33 +110,15 @@ const AuthPage = () => {
           <span className="text-2xl font-display font-bold gradient-text">Moyo</span>
         </div>
 
-        {/* Role selector */}
-        <div className="glass-card p-1 flex mb-6 rounded-xl">
-          <button
-            onClick={() => setRole("user")}
-            className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-medium transition-all duration-300 ${
-              role === "user" ? "gradient-bg text-primary-foreground" : "text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            <User className="w-4 h-4" /> Household
-          </button>
-          <button
-            onClick={() => setRole("supplier")}
-            className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-medium transition-all duration-300 ${
-              role === "supplier" ? "gradient-bg text-primary-foreground" : "text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            <Truck className="w-4 h-4" /> Supplier
-          </button>
-        </div>
-
-        {/* Auth card */}
+        {/* Auth card — copy depends on flow (request water vs become a supplier) */}
         <div className="glass-card p-6">
           <h2 className="text-xl font-display font-bold mb-1">
             Sign in with Google
           </h2>
           <p className="text-sm text-muted-foreground mb-6">
-            Continue as a {role === "supplier" ? "water supplier" : "household user"} using your Google account.
+            {role === "supplier"
+              ? "Sign in to submit your supplier application. After approval you can access the supplier dashboard."
+              : "Sign in to request water. You’ll be taken to your household dashboard to request supply."}
           </p>
 
           <div className="space-y-4">
