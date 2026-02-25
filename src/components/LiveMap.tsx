@@ -24,6 +24,14 @@ const demandIcon = (urgency: DemandPoint["urgency"]) =>
     "!"
   );
 
+export interface LiveSupplierMarker {
+  id: string;
+  lat: number;
+  lng: number;
+  name?: string;
+  vehiclePlate?: string;
+}
+
 interface LiveMapProps {
   /** Demand points to show (supplier view) */
   demandPoints?: DemandPoint[];
@@ -31,16 +39,24 @@ interface LiveMapProps {
   householdPosition?: { lat: number; lng: number } | null;
   /** Supplier's position when en route (user view) */
   supplierPosition?: { lat: number; lng: number } | null;
-  /** Show only a preview (e.g. landing) with no markers */
+  /** Multiple live supplier positions (e.g. landing map: approved tankers moving) */
+  liveSuppliers?: LiveSupplierMarker[];
+  /** Show only a preview (e.g. landing) with optional live supplier markers */
   preview?: boolean;
   className?: string;
   height?: string;
 }
 
-function FitBounds({ demandPoints, householdPosition, supplierPosition }: {
+function FitBounds({
+  demandPoints,
+  householdPosition,
+  supplierPosition,
+  liveSuppliers,
+}: {
   demandPoints?: DemandPoint[];
   householdPosition?: { lat: number; lng: number } | null;
   supplierPosition?: { lat: number; lng: number } | null;
+  liveSuppliers?: LiveSupplierMarker[];
 }) {
   const map = useMap();
   useEffect(() => {
@@ -50,10 +66,11 @@ function FitBounds({ demandPoints, householdPosition, supplierPosition }: {
     });
     if (isValidLatLng(householdPosition)) points.push([householdPosition.lat, householdPosition.lng]);
     if (isValidLatLng(supplierPosition)) points.push([supplierPosition.lat, supplierPosition.lng]);
+    liveSuppliers?.forEach((s) => points.push([s.lat, s.lng]));
     if (points.length > 1) {
       map.fitBounds(points, { padding: [40, 40], maxZoom: 14 });
     }
-  }, [map, demandPoints, householdPosition, supplierPosition]);
+  }, [map, demandPoints, householdPosition, supplierPosition, liveSuppliers]);
   return null;
 }
 
@@ -61,10 +78,18 @@ export default function LiveMap({
   demandPoints = [],
   householdPosition = null,
   supplierPosition = null,
+  liveSuppliers = [],
   preview = false,
   className = "",
   height = "min-h-[280px]",
 }: LiveMapProps) {
+  const showLiveSuppliers = preview ? liveSuppliers : [];
+  const hasAnyMarkers =
+    demandPoints.some(isValidLatLng) ||
+    isValidLatLng(householdPosition) ||
+    isValidLatLng(supplierPosition) ||
+    showLiveSuppliers.length > 0;
+
   return (
     <div className={`relative rounded-2xl overflow-hidden glass-card ${height} ${className}`}>
       <MapContainer
@@ -93,6 +118,20 @@ export default function LiveMap({
             <Popup>Supplier en route</Popup>
           </Marker>
         )}
+        {showLiveSuppliers.length > 0 &&
+          showLiveSuppliers.map((s) => (
+            <Marker
+              key={s.id}
+              position={[s.lat, s.lng]}
+              icon={supplierIcon}
+            >
+              <Popup>
+                <strong>Water tanker</strong>
+                {s.name && <><br />{s.name}</>}
+                {s.vehiclePlate && <><br />Plate: {s.vehiclePlate}</>}
+              </Popup>
+            </Marker>
+          ))}
         {!preview && demandPoints.length > 0 &&
           demandPoints.filter(isValidLatLng).map((d) => (
             <Marker
@@ -107,11 +146,12 @@ export default function LiveMap({
               </Popup>
             </Marker>
           ))}
-        {!preview && (demandPoints.some(isValidLatLng) || isValidLatLng(householdPosition) || isValidLatLng(supplierPosition)) && (
+        {!preview && hasAnyMarkers && (
           <FitBounds
             demandPoints={demandPoints}
             householdPosition={householdPosition}
             supplierPosition={supplierPosition}
+            liveSuppliers={showLiveSuppliers.length > 0 ? showLiveSuppliers : undefined}
           />
         )}
       </MapContainer>

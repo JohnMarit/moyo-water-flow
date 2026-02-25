@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Droplets, Truck, LogOut, Filter, Navigation, CheckCircle2, Inbox } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import LiveMap from "@/components/LiveMap";
 import { useDemand } from "@/contexts/DemandContext";
 import { useAuth } from "@/contexts/AuthContext";
+import { useSuppliers } from "@/contexts/SuppliersContext";
 import { distanceKm, formatDistance } from "@/lib/map-utils";
 import { JUBA_CENTER } from "@/lib/map-utils";
 
@@ -16,19 +17,37 @@ const urgencyStyles = {
 
 const SupplierDashboard = () => {
   const navigate = useNavigate();
-  const { signOut: authSignOut } = useAuth();
+  const { user, signOut: authSignOut } = useAuth();
   const { demands, updateDemandStatus, setSupplierLocation, setSupplierEnRouteTo } = useDemand();
+  const { getApplicationByUserId, setSupplierLivePosition, clearSupplierLivePosition } = useSuppliers();
   const [filter, setFilter] = useState<"all" | "low" | "medium" | "high">("all");
+
+  const userId = user?.uid ?? user?.email ?? "";
+  const application = getApplicationByUserId(userId);
+
+  useEffect(() => {
+    if (!userId) return;
+    if (!application) {
+      navigate("/supplier/apply", { replace: true });
+      return;
+    }
+    if (application.status === "pending" || application.status === "suspended") {
+      navigate("/supplier/apply", { replace: true });
+    }
+  }, [userId, application, navigate]);
 
   const filtered = filter === "all" ? demands : demands.filter((d) => d.urgency === filter);
 
   const handleAction = (id: string, action: "on_the_way" | "supplied") => {
     const demand = demands.find((d) => d.id === id);
-    if (action === "on_the_way" && demand) {
+    if (action === "on_the_way" && demand && application) {
+      const pos = { lat: demand.lat + 0.018, lng: demand.lng };
       setSupplierEnRouteTo(id);
-      setSupplierLocation({ lat: demand.lat + 0.018, lng: demand.lng });
+      setSupplierLocation(pos);
+      setSupplierLivePosition(application.id, application.name, application.vehiclePlate, pos.lat, pos.lng);
     }
     if (action === "supplied") {
+      if (application) clearSupplierLivePosition(application.id);
       setSupplierEnRouteTo(null);
       setSupplierLocation(null);
     }

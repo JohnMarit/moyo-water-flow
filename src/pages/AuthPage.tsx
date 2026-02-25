@@ -24,11 +24,11 @@ const AuthPage = () => {
   const [googleLoading, setGoogleLoading] = useState(false);
   const [googleError, setGoogleError] = useState<string | null>(null);
 
-  // Already signed in: redirect to dashboard (persists across refresh)
+  // Already signed in: redirect — suppliers go to apply (or dashboard if already approved)
   useEffect(() => {
     if (authLoading) return;
     if (user) {
-      const target = authRole === "supplier" ? "/supplier" : "/dashboard";
+      const target = authRole === "supplier" ? "/supplier/apply" : "/dashboard";
       navigate(target, { replace: true });
     }
   }, [user, authLoading, navigate, authRole]);
@@ -38,7 +38,7 @@ const AuthPage = () => {
     persistRole(role);
     setMockAuthenticated(true);
     if (role === "supplier") {
-      navigate("/supplier");
+      navigate("/supplier/apply");
     } else {
       navigate("/dashboard");
     }
