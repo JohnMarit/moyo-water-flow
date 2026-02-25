@@ -1,6 +1,7 @@
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { Droplets, ArrowRight } from "lucide-react";
+import { useEffect } from "react";
 import Navbar from "@/components/Navbar";
 import LiveMap from "@/components/LiveMap";
 import StatsSection from "@/components/StatsSection";
@@ -11,8 +12,47 @@ import { useAuth } from "@/contexts/AuthContext";
 
 const Index = () => {
   const navigate = useNavigate();
-  const { user, authLoading } = useAuth();
+  const { user, authLoading, role } = useAuth();
   const { liveSuppliersForMap, getApplicationByUserId } = useSuppliers();
+
+  // Redirect authenticated users to their appropriate dashboards
+  useEffect(() => {
+    if (authLoading) return;
+    
+    if (user) {
+      // Check if admin first
+      if (user.email === "johnmarit42@gmail.com") {
+        navigate("/admin", { replace: true });
+        return;
+      }
+      
+      // Check role and redirect accordingly
+      if (role === "supplier") {
+        const userId = user.uid ?? user.email ?? "";
+        const application = getApplicationByUserId(userId);
+        if (application?.status === "approved") {
+          navigate("/supplier", { replace: true });
+        } else {
+          navigate("/supplier/apply", { replace: true });
+        }
+      } else {
+        navigate("/dashboard", { replace: true });
+      }
+    }
+  }, [user, authLoading, role, navigate, getApplicationByUserId]);
+
+  // Show loading while checking auth state
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-10 h-10 rounded-xl gradient-bg animate-pulse" />
+          <p className="text-sm text-muted-foreground">Loading…</p>
+        </div>
+      </div>
+    );
+  }
+
   const liveSuppliers = liveSuppliersForMap.map((s) => ({
     id: s.supplierId,
     lat: s.lat,
@@ -22,18 +62,12 @@ const Index = () => {
   }));
 
   const handleRequestWater = () => {
-    if (authLoading) return;
-    if (user) {
-      navigate("/dashboard");
-    } else {
-      navigate("/auth");
-    }
+    navigate("/dashboard");
   };
 
   const handleBecomeSupplier = () => {
-    if (authLoading) return;
     if (!user) {
-      navigate("/auth?role=supplier");
+      navigate("/supplier");
       return;
     }
     const userId = user.uid ?? user.email ?? "";

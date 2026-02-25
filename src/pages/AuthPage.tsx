@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { useSearchParams, useNavigate, Link } from "react-router-dom";
+import { useState } from "react";
+import { useSearchParams, Navigate, Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Droplets, ArrowLeft } from "lucide-react";
 import { signInWithGoogle } from "@/lib/firebase";
@@ -11,36 +11,12 @@ type Role = "user" | "supplier";
 
 const AuthPage = () => {
   const [searchParams] = useSearchParams();
-  const navigate = useNavigate();
-  const { user, authLoading, role: authRole, setRole: persistRole } = useAuth();
+  const { user, authLoading, setRole: persistRole } = useAuth();
   const { getApplicationByUserId } = useSuppliers();
   const role: Role = searchParams.get("role") === "supplier" ? "supplier" : "user";
 
   const [googleLoading, setGoogleLoading] = useState(false);
   const [googleError, setGoogleError] = useState<string | null>(null);
-
-  // Already signed in: redirect immediately. Use URL intent (role) so /auth → dashboard, /auth?role=supplier → supplier
-  useEffect(() => {
-    if (authLoading) return;
-    if (user) {
-      const isAdmin = user.email === "johnmarit42@gmail.com";
-      if (isAdmin) {
-        navigate("/admin", { replace: true });
-        return;
-      }
-      if (role === "supplier") {
-        const userId = user.uid ?? user.email ?? "";
-        const application = getApplicationByUserId(userId);
-        if (application?.status === "approved") {
-          navigate("/supplier", { replace: true });
-        } else {
-          navigate("/supplier/apply", { replace: true });
-        }
-        return;
-      }
-      navigate("/dashboard", { replace: true });
-    }
-  }, [user, authLoading, navigate, role, getApplicationByUserId]);
 
   const handleGoogleSignIn = async () => {
     setGoogleError(null);
@@ -72,16 +48,21 @@ const AuthPage = () => {
     );
   }
 
-  // Already signed in: never show the sign-in form — show redirect state until they're sent to dashboard/supplier/admin
+  // Already signed in: compute target dashboard and redirect immediately
   if (user) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="flex flex-col items-center gap-4">
-          <div className="w-10 h-10 rounded-xl gradient-bg animate-pulse" />
-          <p className="text-sm text-muted-foreground">Taking you back…</p>
-        </div>
-      </div>
-    );
+    const isAdmin = user.email === "johnmarit42@gmail.com";
+    if (isAdmin) {
+      return <Navigate to="/admin" replace />;
+    }
+    if (role === "supplier") {
+      const userId = user.uid ?? user.email ?? "";
+      const application = getApplicationByUserId(userId);
+      if (application?.status === "approved") {
+        return <Navigate to="/supplier" replace />;
+      }
+      return <Navigate to="/supplier/apply" replace />;
+    }
+    return <Navigate to="/dashboard" replace />;
   }
 
   // Not signed in: show sign-in screen — role is fixed from URL (strict flow)
