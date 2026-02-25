@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 import { Droplets, User, Truck, ArrowLeft } from "lucide-react";
 import { signInWithGoogle } from "@/lib/firebase";
 import { useAuth } from "@/contexts/AuthContext";
+import { useSuppliers } from "@/contexts/SuppliersContext";
 
 type Role = "user" | "supplier";
 
@@ -11,25 +12,36 @@ const AuthPage = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { user, authLoading, role: authRole, setRole: persistRole } = useAuth();
+  const { getApplicationByUserId } = useSuppliers();
   const initialRole = searchParams.get("role") === "supplier" ? "supplier" : "user";
 
   const [role, setRole] = useState<Role>(initialRole);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [googleError, setGoogleError] = useState<string | null>(null);
 
-  // Already signed in: redirect (admin goes to admin dashboard; suppliers to apply; households to dashboard)
+  // Already signed in: redirect immediately by role (household → request; supplier → dashboard if approved, else apply)
   useEffect(() => {
     if (authLoading) return;
     if (user) {
       const isAdmin = user.email === "johnmarit42@gmail.com";
-      const target = isAdmin
-        ? "/admin"
-        : authRole === "supplier"
-        ? "/supplier/apply"
-        : "/dashboard";
-      navigate(target, { replace: true });
+      if (isAdmin) {
+        navigate("/admin", { replace: true });
+        return;
+      }
+      if (authRole === "supplier") {
+        const userId = user.uid ?? user.email ?? "";
+        const application = getApplicationByUserId(userId);
+        if (application?.status === "approved") {
+          navigate("/supplier", { replace: true });
+        } else {
+          navigate("/supplier/apply", { replace: true });
+        }
+        return;
+      }
+      // Household: always go to request (dashboard) immediately
+      navigate("/dashboard", { replace: true });
     }
-  }, [user, authLoading, navigate, authRole]);
+  }, [user, authLoading, navigate, authRole, getApplicationByUserId]);
 
   const handleGoogleSignIn = async () => {
     setGoogleError(null);
