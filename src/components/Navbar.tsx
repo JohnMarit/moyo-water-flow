@@ -26,6 +26,7 @@ const Navbar = () => {
     if (!user) {
       // Unauthenticated users must sign in (via Google) and choose supplier role
       navigate("/auth?role=supplier");
+      navigate("/supplier");
       return;
     }
     const userId = user.uid ?? user.email ?? "";

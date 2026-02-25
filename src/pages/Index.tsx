@@ -71,7 +71,7 @@ const Index = () => {
 
   const handleBecomeSupplier = () => {
     if (!user) {
-      navigate("/auth?role=supplier");
+      navigate("/supplier");
       return;
     }
     const userId = user.uid ?? user.email ?? "";
