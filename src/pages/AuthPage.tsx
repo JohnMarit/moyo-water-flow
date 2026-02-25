@@ -73,6 +73,19 @@ const AuthPage = () => {
     );
   }
 
+  // Already signed in: never show the sign-in form — show redirect state until they're sent to dashboard/supplier/admin
+  if (user) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-10 h-10 rounded-xl gradient-bg animate-pulse" />
+          <p className="text-sm text-muted-foreground">Taking you back…</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Not signed in: show sign-in screen (role selector + Google only)
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4 relative">
       {/* Background glow */}
