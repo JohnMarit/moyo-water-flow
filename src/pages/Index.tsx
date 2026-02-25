@@ -6,19 +6,46 @@ import LiveMap from "@/components/LiveMap";
 import StatsSection from "@/components/StatsSection";
 import FeaturesSection from "@/components/FeaturesSection";
 import Footer from "@/components/Footer";
+import { useSuppliers } from "@/contexts/SuppliersContext";
 
 const Index = () => {
+  const { liveSuppliersForMap } = useSuppliers();
+  const liveSuppliers = liveSuppliersForMap.map((s) => ({
+    id: s.supplierId,
+    lat: s.lat,
+    lng: s.lng,
+    name: s.name,
+    vehiclePlate: s.vehiclePlate,
+  }));
+
   return (
     <div className="min-h-screen bg-background overflow-x-hidden">
       <Navbar />
 
-      {/* Hero */}
-      <section className="relative pt-28 pb-16 md:pt-36 md:pb-24">
-        {/* Background glow */}
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[600px] rounded-full bg-moyo-glow/[0.04] blur-[120px] pointer-events-none" />
+      {/* Map first — wider square on all breakpoints; live tanker movement builds trust and motivates requests (South Sudan) */}
+      <section className="relative pt-20 pb-4 px-4 sm:px-6 md:px-8">
+        <div className="w-full max-w-5xl mx-auto">
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.4 }}
+            className="relative rounded-2xl overflow-hidden glass-card aspect-square w-full min-h-[280px] sm:min-h-[320px] md:min-h-[380px] lg:min-h-[420px]"
+          >
+            <LiveMap
+              preview
+              liveSuppliers={liveSuppliers}
+              className="!rounded-2xl w-full h-full absolute inset-0"
+              height="h-full min-h-[280px] sm:min-h-[320px] md:min-h-[380px] lg:min-h-[420px]"
+            />
+          </motion.div>
+        </div>
+      </section>
 
+      {/* Request water & details below the map */}
+      <section className="relative pt-8 pb-16 md:pt-12 md:pb-24">
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[600px] rounded-full bg-moyo-glow/[0.04] blur-[120px] pointer-events-none" />
         <div className="container mx-auto px-4 relative z-10">
-          <div className="max-w-3xl mx-auto text-center mb-12">
+          <div className="max-w-3xl mx-auto text-center mb-10">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -33,7 +60,7 @@ const Index = () => {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.1 }}
-              className="text-4xl md:text-6xl lg:text-7xl font-display font-bold leading-tight mb-6 text-balance"
+              className="text-4xl md:text-5xl lg:text-6xl font-display font-bold leading-tight mb-6 text-balance"
             >
               Clean water,{" "}
               <span className="gradient-text">delivered</span>{" "}
@@ -46,7 +73,7 @@ const Index = () => {
               transition={{ duration: 0.6, delay: 0.2 }}
               className="text-lg text-muted-foreground max-w-xl mx-auto mb-8"
             >
-              Moyo connects households in Juba to water tankers using real-time demand mapping. Request water, track delivery, save lives.
+              See tankers moving on the map above. Request water, track delivery, save lives.
             </motion.p>
 
             <motion.div
@@ -72,13 +99,8 @@ const Index = () => {
             </motion.div>
           </div>
 
-          {/* Map preview — real streets, Juba */}
-          <div className="max-w-4xl mx-auto">
-            <LiveMap preview height="min-h-[320px]" />
-          </div>
-
           {/* Stats */}
-          <div className="mt-16 max-w-4xl mx-auto">
+          <div className="max-w-4xl mx-auto">
             <StatsSection />
           </div>
         </div>
