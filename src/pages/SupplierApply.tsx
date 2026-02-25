@@ -100,6 +100,7 @@ const SupplierApply = () => {
             <div className="w-12 h-12 rounded-full bg-moyo-warning/20 flex items-center justify-center mx-auto mb-4">
               <AlertCircle className="w-6 h-6 text-moyo-warning" />
             </div>
+            <p className="text-xs font-semibold text-moyo-warning uppercase tracking-wider mb-2">Pending approval</p>
             <h2 className="text-lg font-display font-bold mb-2">Application under review</h2>
             <p className="text-sm text-muted-foreground mb-4">
               We have received your details and tanker photo. An admin will verify and approve you soon. You will then appear on the live map and can start receiving requests.

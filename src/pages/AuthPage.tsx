@@ -19,7 +19,7 @@ const AuthPage = () => {
   const [googleLoading, setGoogleLoading] = useState(false);
   const [googleError, setGoogleError] = useState<string | null>(null);
 
-  // Already signed in: redirect immediately by role (household → request; supplier → dashboard if approved, else apply)
+  // Already signed in: redirect immediately. Use URL intent (role) so /auth → dashboard, /auth?role=supplier → supplier
   useEffect(() => {
     if (authLoading) return;
     if (user) {
@@ -28,7 +28,7 @@ const AuthPage = () => {
         navigate("/admin", { replace: true });
         return;
       }
-      if (authRole === "supplier") {
+      if (role === "supplier") {
         const userId = user.uid ?? user.email ?? "";
         const application = getApplicationByUserId(userId);
         if (application?.status === "approved") {
@@ -38,10 +38,9 @@ const AuthPage = () => {
         }
         return;
       }
-      // Household: always go to request (dashboard) immediately
       navigate("/dashboard", { replace: true });
     }
-  }, [user, authLoading, navigate, authRole, getApplicationByUserId]);
+  }, [user, authLoading, navigate, role, getApplicationByUserId]);
 
   const handleGoogleSignIn = async () => {
     setGoogleError(null);
